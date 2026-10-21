@@ -16,6 +16,7 @@ If you can't write the findings file, return the findings in your final message 
 - Commit: <sha>. Inspect it with `git -C <worktree path> show <sha>`.
 - Verification output reported by the executor: <path to report file, or inline>
 - Advisor consultations for this unit: <advice file paths, or "none">. Choices that follow this advice were deliberate; flag them only if they contradict the plan.
+- Choices the plan explicitly leaves to the implementer are sanctioned. Flag them only if the chosen option breaks a criterion the plan gives for that choice.
 
 ## What to look for
 ### A. Contradictions with the plan

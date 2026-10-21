@@ -160,6 +160,7 @@ Consolidate all subtasks' revised deliverables and save to `docs/plans/YYYY-MM-D
 - Keep long-term guidelines (from Fable) separate from short-to-mid-term design (from Opus), so the implementer knows what to treat as fixed constraints.
 - Link every implementation task to the IDs of the decisions it is based on. An implementation task with no linked decision signals a missing decision.
 - Size implementation tasks so that each one fits in a single commit, and give each one exact verification commands with expected results. The plan is executed by the `orchestrated-execution` skill, which commits and reviews one task at a time.
+- Fill in the template's execution-facing fields (base commit, prerequisites, baseline, per-task "left to the implementer" and condition). The executor uses them to catch a stale plan or missing tool before it starts, and to judge how much judgment each task needs.
 - Inline what the implementer would otherwise have to look up: code that must be recreated, exact snippets, and commands. The implementer should not need this skill's work directory, because it will not exist later.
 
 **Document standard: neither too much nor too little**
@@ -172,8 +173,10 @@ The reader is the "implementation agent that will next direct subagents to imple
 **Final check**
 
 Before saving, reread the document from the implementation agent's point of view and confirm:
-- [ ] Every implementation task has verifiable completion criteria.
+- [ ] Every implementation task has completion criteria as exact commands with expected results, and says what it leaves to the implementer.
 - [ ] Dependencies and execution order can be read unambiguously.
+- [ ] Base commit, prerequisites (with checks), baseline, overall verification, and manual checks for the user are stated.
+- [ ] Every long-term guideline the code will keep relying on has a task that writes it into the repository.
 - [ ] Every unresolved item says how it will be handled (who, when, default if still unresolved).
 - [ ] Nothing that exists only in the conversation (e.g. verbal user instructions) has been left out.
 - [ ] No explanation or history unnecessary for implementation remains.

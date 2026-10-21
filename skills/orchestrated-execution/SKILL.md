@@ -1,6 +1,6 @@
 ---
 name: orchestrated-execution
-description: Executes a structured plan document (typically one produced by the orchestrated-planning skill under docs/plans/) task by task in a dedicated branch and git worktree — clarifying open points with the user first, splitting the plan into commit-sized units, delegating tasks to agents matched to each task's difficulty (Sonnet for precisely specified work, Opus for tasks that need judgment or subtle correctness) when context isolation helps, consulting an Opus or Fable advisor agent when a task hits a hard problem, putting every task through adversarial review by a fresh agent of the same tier, stopping to consult the user (and proposing a re-plan) when a serious contradiction surfaces, getting a final Opus review of the whole branch, and finally removing the plan document and merging or opening a PR. Use this whenever the user asks to implement, execute, or carry out a plan document, or says things like 「計画を実行して」「この計画書どおりに実装して」「docs/plans の計画を進めて」, even if they don't name this skill. Do not use for ad-hoc changes with no plan document.
+description: Executes a structured plan document (typically one under docs/plans/ that lists decisions, tasks, and completion criteria) task by task in a dedicated branch and git worktree — clarifying open points with the user first, splitting the plan into commit-sized units, delegating tasks to agents matched to each task's difficulty (Sonnet for precisely specified work, Opus for tasks that need judgment or subtle correctness) when context isolation helps, consulting an Opus or Fable advisor agent when a task hits a hard problem, putting every task through adversarial review by a fresh agent of the same tier, stopping to consult the user (and proposing a re-plan) when a serious contradiction surfaces, getting a final Opus review of the whole branch, and finally removing the plan document and merging or opening a PR. Use this whenever the user asks to implement, execute, or carry out a plan document, or says things like 「計画を実行して」「この計画書どおりに実装して」「docs/plans の計画を進めて」, even if they don't name this skill. Do not use for ad-hoc changes with no plan document.
 ---
 
 # Orchestrated Execution
@@ -31,8 +31,8 @@ Read the whole plan document before touching anything. Then check it from the im
 
 - **Unresolved items and defaults**: list every item the plan marks as unresolved, owner-to-decide, vetoable, or conditional, together with its stated default.
 - **Ambiguities**: places where two reasonable implementers would do different things, wording like "as appropriate", and missing completion criteria.
-- **Drift**: spot-check the plan's "background context" against the repository as it is now (key files, line references, the verification baseline). Plans go stale. A changed premise is cheaper to catch now than in task 5.
-- **Preconditions**: tools, credentials, or environments the verification commands need, and whether they are available here.
+- **Drift**: spot-check the plan's "background context" against the repository as it is now (key files, line references, the verification baseline). If the plan records the commit it was written against, `git diff <that-commit>..HEAD -- <files the plan cites>` shows what moved. If it also names a base branch that differs from the one checked out now, ask which one to build on. Plans go stale. A changed premise is cheaper to catch now than in task 5.
+- **Preconditions**: tools, credentials, or environments the plan lists or its verification commands need, and whether they are available here. Run the checks the plan gives for them, and follow its stated fallback when something is missing.
 - **Internal consistency**: tasks that contradict decisions, and dependencies that don't match the stated order.
 
 Ask the user about the points whose answers change what gets built. Use concrete options, and put the plan's default first. Don't ask about things the plan has already decided; the plan is the agreed specification.
@@ -78,7 +78,7 @@ Do it yourself when the unit is small, needs judgment that spans several units, 
 | **standard** | Sonnet (`model: "sonnet"`) | The plan fixes the how, not just the what: exact snippets, file locations, commands. The change is local, mostly mechanical, and the completion criteria check it directly. Examples: adding a config entry, wiring a function the plan already designed, renaming across files per a given mapping, writing tests the plan enumerates. |
 | **hard** | Opus (`model: "opus"`) | The executor has to make real decisions or find things out. The plan states the goal but leaves the implementation open, and the choices affect later units. Correctness is subtle: concurrency, security boundaries, data migration, state machines, error recovery, performance-sensitive code. The cause of a failure must be diagnosed in unfamiliar or tightly coupled code. A cross-cutting change must stay consistent across many modules. |
 
-Tie-breaker when unsure: "Could a careful implementer finish this by following the plan literally, without decisions the plan doesn't make?" Yes → standard; no → hard. Most units of a good plan are standard. If most units come out hard, the plan is probably underspecified; raise that in Phase 1 rather than paying for Opus throughout.
+Tie-breaker when unsure: "Could a careful implementer finish this by following the plan literally, without decisions the plan doesn't make?" Yes → standard; no → hard. If the plan states per task which choices it leaves to the implementer, start from that: none usually means standard. Most units of a good plan are standard. If most units come out hard, the plan is probably underspecified; raise that in Phase 1 rather than paying for Opus throughout.
 
 When delegating, write the brief from `references/delegation-brief.md` to a file and point the agent at it. Record the model and agent ID in the log; you may need to resume it in 4.3.
 
@@ -90,7 +90,7 @@ When delegating, write the brief from `references/delegation-brief.md` to a file
   | Advisor | Use it when |
   |---|---|
   | **Opus** (`model: "opus"`, `effort: "medium"`) | The problem stays inside this unit or the next one or two: a bug diagnosis, choosing an implementation approach, a confusing tool or library behavior. This is the default. |
-  | **Fable** (`model: "fable"`, `effort: "medium"`) | The answer affects the plan's long-term guidelines, the overall architecture, or many remaining units. Also use it when an Opus advisor's advice didn't resolve the problem. Fable is expensive, so tell the user why you want it and get a go-ahead first, as `orchestrated-planning` does. |
+  | **Fable** (`model: "fable"`, `effort: "medium"`) | The answer affects the plan's long-term guidelines, the overall architecture, or many remaining units. Also use it when an Opus advisor's advice didn't resolve the problem. Fable is expensive, so tell the user why you want it and get a go-ahead first. |
 
 - **Keeping the advisor lean.** Write the request from `references/advisor-prompt.md` to a file. Pass paths and short excerpts rather than pasting logs and diffs. The prompt tells the advisor to save its own context: send broad searches, long logs, and reading many files to Sonnet or Haiku agents; use a `fork` (`subagent_type: "fork"`) when it wants to explore a hypothesis in depth without filling its own context; and do the reasoning and the final judgment itself.
 - **Limits.** Usually one consultation per problem, and two at most per unit. If the advice says the plan itself is wrong, or two consultations haven't resolved the problem, go to 4.4.
@@ -121,7 +121,7 @@ Don't give it your own assessment. Do give it facts that put things out of scope
 - **contradictions with the plan**: deviations from decisions, constraints, or completion criteria, including scope creep;
 - **problems for the next unit**: anything in this commit that would block or complicate the next unit, or that the next unit's premises no longer match.
 
-A fresh context matters here for the same reason as in planning: an executor's or orchestrator's context makes it easy to accept a deviation as reasonable.
+A fresh context matters here: an executor's or orchestrator's context makes it easy to accept a deviation as reasonable.
 
 ### 4.3 Handle the findings
 
@@ -140,11 +140,11 @@ Re-review only if the fix was substantial, and at most once per unit. Then updat
 Stop executing and consult the user if any of these appear:
 - the plan cannot be carried out as written (a premise is false, a required option or tool doesn't exist, or a completion criterion is unreachable);
 - a contradiction between the plan and reality, or within the plan, that affects later units;
-- following the plan would violate one of its long-term guidelines, or would require changing one;
+- following the plan would violate one of its long-term guidelines, or would require changing one, or a condition the plan names for re-examining a decision has occurred;
 - the remaining units' results would no longer meet the plan's goals.
 
 Report what you found, with evidence (commands and output), which units are done (with SHAs), and which remaining units are affected. Then:
-- If the plan needs revision rather than a local workaround, **propose re-planning with the `orchestrated-planning` skill**. Gather the information the re-plan needs and write a prompt from `references/replan-prompt.md`, then show it to the user and ask whether to run it. Run it only on the user's go-ahead. Planning involves user approval of its task assignment, so the re-plan should run where the user can answer (this session, invoking the skill with the prompt). Use a subagent only if the user prefers it and the subagent can spawn agents. In that case, relay its approval questions to the user.
+- If the plan needs revision rather than a local workaround, **propose a re-plan**. Write a self-contained re-plan request from `references/replan-prompt.md`: whoever revises the plan won't have this conversation, so the request carries the execution status, the evidence, and the decisions made so far. Show it to the user and ask how they want the plan revised: by handing the request to the planning process they normally use (a planning skill or workflow, or a separate session), or by revising it here together with you. Do nothing until the user decides. Revising a plan involves the user's judgment, so run the revision where the user can answer; if it runs in a subagent, relay its questions to the user.
 - After a revised plan comes back, resume from Phase 1 for the remaining units. The revised plan replaces the committed one on the branch.
 
 Minor deviations that don't affect later units don't warrant stopping. Record them in the log and in the commit message.

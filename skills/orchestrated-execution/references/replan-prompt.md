@@ -1,9 +1,9 @@
-# Re-plan prompt template (Phase 4.4)
+# Re-plan request template (Phase 4.4)
 
-Use this when execution has stopped on a problem that needs the plan revised. Show the filled-in prompt to the user and run it only on their go-ahead. It is written so that the `orchestrated-planning` skill can run from it without this conversation's context. Run it in the main session (by invoking the skill with this prompt as its argument), because planning asks the user to approve its task assignment. If the user prefers a subagent, the subagent must be able to spawn agents, and its approval questions must be relayed to the user.
+Use this when execution has stopped on a problem that needs the plan revised. Show the filled-in request to the user and act on it only on their go-ahead. It must work without this conversation's context, whether the user hands it to a planning skill or workflow, to a separate session, or revises the plan here. If the user names a planning skill or workflow, add a first line asking for it.
 
 ```markdown
-Use the orchestrated-planning skill to revise an existing plan whose execution hit a blocking problem.
+Revise an existing plan document whose execution hit a blocking problem.
 
 ## Plan being revised
 - Plan document: <absolute path in the worktree> (committed on branch <branch>)
@@ -31,5 +31,5 @@ Use the orchestrated-planning skill to revise an existing plan whose execution h
 - <any user-stated constraint>
 
 ## Expected output
-A revised plan document at <path> (same structure as the original), with the changed decisions and tasks marked, and a short summary of what changed and why. Execution will resume from Phase 1 of the orchestrated-execution skill on that plan.
+A revised plan document at <path>, with the same structure as the original, the changed decisions and tasks marked, and a short summary of what changed and why. Each remaining task still needs exact completion commands with expected results. Update the plan's recorded base commit (if it has one) and its file:line references to the current branch HEAD, which includes the completed units. Execution resumes from the revised plan's first unfinished task.
 ```
