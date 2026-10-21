@@ -1,6 +1,6 @@
 ---
 name: orchestrated-execution
-description: Executes a structured plan document (typically one produced by the orchestrated-planning skill under docs/plans/) task by task in a dedicated branch and git worktree — clarifying open points with the user first, splitting the plan into commit-sized units, delegating tasks to Sonnet agents when context isolation helps, putting every task through adversarial review by a fresh Sonnet agent, stopping to consult the user (and proposing a re-plan) when a serious contradiction surfaces, getting a final Opus review of the whole branch, and finally removing the plan document and merging or opening a PR. Use this whenever the user asks to implement, execute, or carry out a plan document, or says things like 「計画を実行して」「この計画書どおりに実装して」「docs/plans の計画を進めて」, even if they don't name this skill. Do not use for ad-hoc changes with no plan document.
+description: Executes a structured plan document (typically one produced by the orchestrated-planning skill under docs/plans/) task by task in a dedicated branch and git worktree — clarifying open points with the user first, splitting the plan into commit-sized units, delegating tasks to agents matched to each task's difficulty (Sonnet for precisely specified work, Opus for tasks that need judgment or subtle correctness) when context isolation helps, consulting an Opus or Fable advisor agent when a task hits a hard problem, putting every task through adversarial review by a fresh agent of the same tier, stopping to consult the user (and proposing a re-plan) when a serious contradiction surfaces, getting a final Opus review of the whole branch, and finally removing the plan document and merging or opening a PR. Use this whenever the user asks to implement, execute, or carry out a plan document, or says things like 「計画を実行して」「この計画書どおりに実装して」「docs/plans の計画を進めて」, even if they don't name this skill. Do not use for ad-hoc changes with no plan document.
 ---
 
 # Orchestrated Execution
@@ -13,14 +13,15 @@ Carry out a plan document faithfully, one commit-sized task at a time, with an i
 Phase 1  Analyze the plan and confirm open points   (this session) → user answers
 Phase 2  Split into ordered, commit-sized units     (this session)
 Phase 3  Branch + worktree                          (this session)
-Phase 4  Execute each unit                          (this session or a Sonnet agent)
-           └ per unit: verify → commit → adversarial review (fresh Sonnet, effort medium) → fix
+Phase 4  Execute each unit                          (this session, or a Sonnet/Opus agent by difficulty)
+           └ hard problem mid-unit → consult an advisor (Opus, or Fable with the user's OK) → resume
+           └ per unit: verify → commit → adversarial review (fresh agent of the unit's tier, effort medium) → fix
            └ serious problem → stop, consult the user, propose a re-plan
 Phase 5  Final review of the whole branch           (fresh Opus, effort medium) → fix
 Phase 6  Remove the plan, merge or open a PR, clean up the worktree (each step confirmed with the user)
 ```
 
-Keep an **execution log** in the scratchpad directory: one row per unit with its status, commit SHA, executor (self or agent ID), review file, and outcome. Save every delegation brief and review result next to it as files. This lets work resume after the conversation context is summarized, and lets agents read artifacts by path.
+Keep an **execution log** in the scratchpad directory: one row per unit with its status, difficulty tier, commit SHA, executor (self, or model and agent ID), review file, and outcome. Save every delegation brief and review result next to it as files. This lets work resume after the conversation context is summarized, and lets agents read artifacts by path.
 
 ---
 
@@ -44,9 +45,9 @@ Turn the plan's tasks into an ordered list of **units**. Each unit is one featur
 
 - Usually the plan's tasks map one-to-one. Split a task that mixes independent changes, and merge tasks that cannot be verified separately.
 - Respect the plan's execution order and dependencies. Drop units for vetoed items, and conditional units whose condition is unmet.
-- For each unit, note the plan section it implements, its completion criteria, and whether you will execute it yourself or delegate it (see Phase 4).
+- For each unit, note the plan section it implements, its completion criteria, its difficulty tier (standard or hard, see 4.1), and whether you will execute it yourself or delegate it.
 
-Show the user the unit list briefly and proceed, unless the split departs from the plan in a way the user should weigh in on.
+Show the user the unit list briefly, including the tier of each unit, and proceed, unless the split departs from the plan in a way the user should weigh in on. Mention the hard units explicitly: Opus costs more, so the user may want to move a unit to the other tier.
 
 ## Phase 3: Branch and worktree
 
@@ -64,13 +65,39 @@ Work through the units in order. For each one:
 
 ### 4.1 Execute
 
-**Doing it yourself vs. delegating to a Sonnet agent.** Delegate (`Agent` with `model: "sonnet"`, `subagent_type: "general-purpose"`) when context isolation pays off:
-- the unit is self-contained and the plan specifies it precisely (exact snippets, exact commands);
+**Doing it yourself vs. delegating.** Delegate (`Agent` with `subagent_type: "general-purpose"` and the model from the table below) when context isolation pays off:
+- the unit is self-contained and the plan specifies it well enough to work from the plan alone;
 - or it requires reading many files, or produces long command output that would crowd this session's context.
 
 Do it yourself when the unit is small, needs judgment that spans several units, or touches something that just changed because of a review.
 
-When delegating, write the brief from `references/delegation-brief.md` to a file and point the agent at it. Record the agent ID in the log; you may need to resume it in 4.3.
+**Choosing the model by difficulty.** The tier decides the executor's model and, in 4.2, the reviewer's model.
+
+| Tier | Model | Units it fits |
+|---|---|---|
+| **standard** | Sonnet (`model: "sonnet"`) | The plan fixes the how, not just the what: exact snippets, file locations, commands. The change is local, mostly mechanical, and the completion criteria check it directly. Examples: adding a config entry, wiring a function the plan already designed, renaming across files per a given mapping, writing tests the plan enumerates. |
+| **hard** | Opus (`model: "opus"`) | The executor has to make real decisions or find things out. The plan states the goal but leaves the implementation open, and the choices affect later units. Correctness is subtle: concurrency, security boundaries, data migration, state machines, error recovery, performance-sensitive code. The cause of a failure must be diagnosed in unfamiliar or tightly coupled code. A cross-cutting change must stay consistent across many modules. |
+
+Tie-breaker when unsure: "Could a careful implementer finish this by following the plan literally, without decisions the plan doesn't make?" Yes → standard; no → hard. Most units of a good plan are standard. If most units come out hard, the plan is probably underspecified; raise that in Phase 1 rather than paying for Opus throughout.
+
+When delegating, write the brief from `references/delegation-brief.md` to a file and point the agent at it. Record the model and agent ID in the log; you may need to resume it in 4.3.
+
+**Consulting an advisor.** An executor can hit a hard problem in the middle of a unit: a failure whose cause it can't find after a couple of real attempts, an implementation choice the plan leaves open with consequences beyond this unit, or two readings of the plan that lead to different code. It shouldn't guess or keep trying the same thing. Ask an advisor, a fresh agent that diagnoses and recommends but doesn't edit anything.
+
+- **Who asks.** You launch every advisor, so that consultations stay visible in the log and the cost stays under your control. A delegated executor that hits such a problem stops, leaves its work uncommitted, and returns a consultation request (the brief tells it how). You run the consultation and resume the executor with `SendMessage`, passing the advice file path. When you are the executor, consult the same way.
+- **Which model.**
+
+  | Advisor | Use it when |
+  |---|---|
+  | **Opus** (`model: "opus"`, `effort: "medium"`) | The problem stays inside this unit or the next one or two: a bug diagnosis, choosing an implementation approach, a confusing tool or library behavior. This is the default. |
+  | **Fable** (`model: "fable"`, `effort: "medium"`) | The answer affects the plan's long-term guidelines, the overall architecture, or many remaining units. Also use it when an Opus advisor's advice didn't resolve the problem. Fable is expensive, so tell the user why you want it and get a go-ahead first, as `orchestrated-planning` does. |
+
+- **Keeping the advisor lean.** Write the request from `references/advisor-prompt.md` to a file. Pass paths and short excerpts rather than pasting logs and diffs. The prompt tells the advisor to save its own context: send broad searches, long logs, and reading many files to Sonnet or Haiku agents; use a `fork` (`subagent_type: "fork"`) when it wants to explore a hypothesis in depth without filling its own context; and do the reasoning and the final judgment itself.
+- **Limits.** Usually one consultation per problem, and two at most per unit. If the advice says the plan itself is wrong, or two consultations haven't resolved the problem, go to 4.4.
+
+Record each consultation in the log: unit, advisor model, request and advice file paths, and whether the advice worked. Tell the reviewer in 4.2 which advice the unit followed, so that a choice made on advice isn't flagged as unsanctioned.
+
+**Escalating.** A Sonnet executor may report that a criterion can't be met, or come back with a result that misses the point of the unit. If the cause is the plan, that is 4.4. If a specific obstacle is the problem, consult an advisor first; that is cheaper than redoing the unit. If the unit as a whole turned out harder than rated, reclassify it as hard. Discard or reset the attempt (it is still uncommitted, or a single commit you can drop), and delegate it again to a fresh Opus agent. Give that agent the original brief plus the Sonnet report, so it doesn't repeat the same dead ends. Note the reclassification in the log.
 
 Whoever executes the unit must:
 - implement only that unit;
@@ -84,7 +111,7 @@ Don't modify existing tests to make them pass; that changes the specification. I
 
 ### 4.2 Adversarial review
 
-After the unit is committed, launch **a fresh Sonnet agent with effort medium** (`model: "sonnet"`, `effort: "medium"`) using `references/task-review-prompt.md`. Give it:
+After the unit is committed, launch **a fresh agent with effort medium** using `references/task-review-prompt.md`. Pick its model from the unit's tier: Sonnet for standard units, Opus for hard ones (`model: "sonnet"` or `"opus"`, `effort: "medium"`). Use the same tier even if you executed the unit yourself. On hard units, problems are subtle, and a reviewer weaker than the work tends to miss them or raise false findings. Give it:
 - the plan path and the unit's plan section;
 - the commit SHA;
 - the verification output;

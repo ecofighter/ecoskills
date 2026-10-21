@@ -1,6 +1,6 @@
 # Per-unit adversarial review prompt (Phase 4.2)
 
-For a fresh Sonnet agent: `model: "sonnet"`, `effort: "medium"`. Fill in the `<...>` parts. Don't include your own assessment of the unit.
+For a fresh agent matched to the unit's tier: `model: "sonnet"` (standard) or `model: "opus"` (hard), with `effort: "medium"`. Fill in the `<...>` parts. Don't include your own assessment of the unit.
 
 ```markdown
 # Request: Adversarial review of one implemented unit
@@ -15,6 +15,7 @@ If you can't write the findings file, return the findings in your final message 
 - Plan: <worktree path>/<plan path>. The unit implements section <section>. The next unit is section <section>.
 - Commit: <sha>. Inspect it with `git -C <worktree path> show <sha>`.
 - Verification output reported by the executor: <path to report file, or inline>
+- Advisor consultations for this unit: <advice file paths, or "none">. Choices that follow this advice were deliberate; flag them only if they contradict the plan.
 
 ## What to look for
 ### A. Contradictions with the plan
