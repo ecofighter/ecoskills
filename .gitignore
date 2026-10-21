@@ -1,0 +1,3 @@
+# claude.ai から ~/.claude/skills に自動同期される Anthropic 提供スキル (公開対象外)
+/skills/synced/
+.DS_Store

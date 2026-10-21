@@ -1,0 +1,11 @@
+{
+  "name": "ecoskills",
+  "version": "0.1.0",
+  "description": "Orchestrated planning and execution skills: multi-angle planning with subagents and adversarial review, then plan execution in a dedicated worktree.",
+  "license": "MIT",
+  "author": {
+    "name": "Shota Arakaki"
+  },
+  "homepage": "https://github.com/ecofighter/ecoskills",
+  "repository": "https://github.com/ecofighter/ecoskills"
+}

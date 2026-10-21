@@ -1,0 +1,22 @@
+{
+  "name": "ecoskills",
+  "owner": {
+    "name": "Shota Arakaki"
+  },
+  "metadata": {
+    "description": "Personal Claude Code skills by ecofighter"
+  },
+  "plugins": [
+    {
+      "name": "ecoskills",
+      "source": "./",
+      "description": "Orchestrated planning and execution skills: multi-angle planning with subagents and adversarial review, then plan execution in a dedicated worktree.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Shota Arakaki"
+      },
+      "homepage": "https://github.com/ecofighter/ecoskills",
+      "repository": "https://github.com/ecofighter/ecoskills"
+    }
+  ]
+}
