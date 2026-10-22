@@ -1,6 +1,6 @@
 # Advisor consultation prompt (Phase 4.1)
 
-For a fresh advisor agent: `model: "opus"` by default, or `model: "fable"` (with the user's go-ahead), with `effort: "medium"`. Write it to a file in the scratchpad directory and launch the advisor with a short prompt pointing at it. Fill in the `<...>` parts. Pass paths and short excerpts, not full logs or diffs; the advisor can read what it needs.
+For a fresh advisor agent (`subagent_type: "ecoskills:advisor"`, or `"general-purpose"` if that type isn't available): `model: "opus"` by default, or `model: "fable"` (with the user's go-ahead), with `effort: "medium"`. Write it to a file in the scratchpad directory and launch the advisor with a short prompt pointing at it. Fill in the `<...>` parts. Pass paths and short excerpts, not full logs or diffs; the advisor can read what it needs.
 
 ```markdown
 # Request: Advise on a hard problem in unit <U-n>

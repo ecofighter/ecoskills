@@ -1,6 +1,6 @@
 # Final branch review prompt (Phase 5)
 
-For a fresh Opus agent: `model: "opus"`, `effort: "medium"`. Fill in the `<...>` parts.
+For a fresh Opus reviewer agent (`subagent_type: "ecoskills:reviewer"`, or `"general-purpose"` if that type isn't available): `model: "opus"`, `effort: "medium"`. Fill in the `<...>` parts.
 
 ```markdown
 # Request: Review the whole branch against its plan

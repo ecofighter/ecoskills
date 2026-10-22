@@ -23,6 +23,22 @@ Phase 6  Remove the plan, merge or open a PR, clean up the worktree (each step c
 
 Keep an **execution log** in the scratchpad directory: one row per unit with its status, difficulty tier, commit SHA, executor (self, or model and agent ID), review file, and outcome. Save every delegation brief and review result next to it as files. This lets work resume after the conversation context is summarized, and lets agents read artifacts by path.
 
+**Agent types.** The ecoskills plugin ships one agent per delegated role:
+
+| Role | Agent type | Tools |
+|---|---|---|
+| Executor (4.1) | `ecoskills:implementer` | Read, Grep, Glob, Bash, Edit, Write, WebFetch, WebSearch |
+| Advisor (4.1) | `ecoskills:advisor` | Read, Grep, Glob, Bash, Write, Agent, WebFetch, WebSearch |
+| Reviewer (4.2, Phase 5) | `ecoskills:reviewer` | Read, Grep, Glob, Bash, Write |
+
+Each carries only the tools its role needs, so it starts with a far smaller context than `general-purpose` and does the same work for roughly half the tokens. Pass `model` (and `effort` where the phase gives one) on every launch; the agent's own default is only a fallback.
+
+Use `general-purpose` instead, with the same prompt, model, and effort, in two cases:
+- **The unit needs a tool the agent lacks.** Examples: a browser to check a UI, an MCP server the plan's verification uses, notebook editing. Decide this when you write the brief, from the unit's contents and completion criteria, and note it in the log. If a delegated agent reports that it needs a missing tool, re-delegate the unit to `general-purpose`, giving it the original brief and the report.
+- **The agent types aren't available** because the skill is installed without the plugin. The prompts built from `references/` are self-contained, so they work unchanged.
+
+Note in the log which agent type each delegation used.
+
 ---
 
 ## Phase 1: Analyze the plan and confirm open points
@@ -65,7 +81,7 @@ Work through the units in order. For each one:
 
 ### 4.1 Execute
 
-**Doing it yourself vs. delegating.** Delegate (`Agent` with `subagent_type: "general-purpose"` and the model from the table below) when context isolation pays off:
+**Doing it yourself vs. delegating.** Delegate (`Agent` with `subagent_type: "ecoskills:implementer"` and the model from the table below; see "Agent types" for when to use `general-purpose`) when context isolation pays off:
 - the unit is self-contained and the plan specifies it well enough to work from the plan alone;
 - or it requires reading many files, or produces long command output that would crowd this session's context.
 
@@ -85,7 +101,7 @@ When delegating, write the brief from `references/delegation-brief.md` to a file
 **Consulting an advisor.** An executor can hit a hard problem in the middle of a unit: a failure whose cause it can't find after a couple of real attempts, an implementation choice the plan leaves open with consequences beyond this unit, or two readings of the plan that lead to different code. It shouldn't guess or keep trying the same thing. Ask an advisor, a fresh agent that diagnoses and recommends but doesn't edit anything.
 
 - **Who asks.** You launch every advisor, so that consultations stay visible in the log and the cost stays under your control. A delegated executor that hits such a problem stops, leaves its work uncommitted, and returns a consultation request (the brief tells it how). You run the consultation and resume the executor with `SendMessage`, passing the advice file path. When you are the executor, consult the same way.
-- **Which model.**
+- **Which model.** Launch the advisor as `subagent_type: "ecoskills:advisor"` with one of these models:
 
   | Advisor | Use it when |
   |---|---|
@@ -97,7 +113,7 @@ When delegating, write the brief from `references/delegation-brief.md` to a file
 
 Record each consultation in the log: unit, advisor model, request and advice file paths, and whether the advice worked. Tell the reviewer in 4.2 which advice the unit followed, so that a choice made on advice isn't flagged as unsanctioned.
 
-**Escalating.** A Sonnet executor may report that a criterion can't be met, or come back with a result that misses the point of the unit. If the cause is the plan, that is 4.4. If a specific obstacle is the problem, consult an advisor first; that is cheaper than redoing the unit. If the unit as a whole turned out harder than rated, reclassify it as hard. Discard or reset the attempt (it is still uncommitted, or a single commit you can drop), and delegate it again to a fresh Opus agent. Give that agent the original brief plus the Sonnet report, so it doesn't repeat the same dead ends. Note the reclassification in the log.
+**Escalating.** A Sonnet executor may report that a criterion can't be met, or come back with a result that misses the point of the unit. If the cause is the plan, that is 4.4. If a specific obstacle is the problem, consult an advisor first; that is cheaper than redoing the unit. If the unit as a whole turned out harder than rated, reclassify it as hard. Discard or reset the attempt (it is still uncommitted, or a single commit you can drop), and delegate it again to a fresh Opus executor (same agent type, `model: "opus"`). Give that agent the original brief plus the Sonnet report, so it doesn't repeat the same dead ends. Note the reclassification in the log.
 
 Whoever executes the unit must:
 - implement only that unit;
@@ -111,7 +127,7 @@ Don't modify existing tests to make them pass; that changes the specification. I
 
 ### 4.2 Adversarial review
 
-After the unit is committed, launch **a fresh agent with effort medium** using `references/task-review-prompt.md`. Pick its model from the unit's tier: Sonnet for standard units, Opus for hard ones (`model: "sonnet"` or `"opus"`, `effort: "medium"`). Use the same tier even if you executed the unit yourself. On hard units, problems are subtle, and a reviewer weaker than the work tends to miss them or raise false findings. Give it:
+After the unit is committed, launch **a fresh reviewer with effort medium** (`subagent_type: "ecoskills:reviewer"`) using `references/task-review-prompt.md`. Pick its model from the unit's tier: Sonnet for standard units, Opus for hard ones (`model: "sonnet"` or `"opus"`, `effort: "medium"`). Use the same tier even if you executed the unit yourself. On hard units, problems are subtle, and a reviewer weaker than the work tends to miss them or raise false findings. Give it:
 - the plan path and the unit's plan section;
 - the commit SHA;
 - the verification output;
@@ -151,7 +167,7 @@ Minor deviations that don't affect later units don't warrant stopping. Record th
 
 ## Phase 5: Final review of the whole branch
 
-When all units are done, launch **a fresh Opus agent with effort medium** (`model: "opus"`, `effort: "medium"`) using `references/final-review-prompt.md`. It reviews the entire branch diff (`git diff <base-sha>...HEAD`) against the plan:
+When all units are done, launch **a fresh Opus reviewer with effort medium** (`subagent_type: "ecoskills:reviewer"`, `model: "opus"`, `effort: "medium"`) using `references/final-review-prompt.md`. It reviews the entire branch diff (`git diff <base-sha>...HEAD`) against the plan:
 - whether the goals and success criteria are met;
 - consistency across units;
 - leftovers (debug code, temporary files, stale references);

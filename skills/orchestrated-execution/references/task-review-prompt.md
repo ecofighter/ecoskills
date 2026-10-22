@@ -1,6 +1,6 @@
 # Per-unit adversarial review prompt (Phase 4.2)
 
-For a fresh agent matched to the unit's tier: `model: "sonnet"` (standard) or `model: "opus"` (hard), with `effort: "medium"`. Fill in the `<...>` parts. Don't include your own assessment of the unit.
+For a fresh reviewer agent (`subagent_type: "ecoskills:reviewer"`, or `"general-purpose"` if that type isn't available) matched to the unit's tier: `model: "sonnet"` (standard) or `model: "opus"` (hard), with `effort: "medium"`. Fill in the `<...>` parts. Don't include your own assessment of the unit.
 
 ```markdown
 # Request: Adversarial review of one implemented unit

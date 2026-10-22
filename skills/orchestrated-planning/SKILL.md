@@ -27,6 +27,8 @@ Save intermediate artifacts (analysis memo, context dossier, each briefing, each
 
 Write the final plan document in the language the user is working in.
 
+**Agent types.** The ecoskills plugin ships two agents for the fact-gathering and review roles: `ecoskills:researcher` (Phase 2) and `ecoskills:reviewer` (Phase 5). They carry only the tools those roles need, which keeps their context far smaller than `general-purpose` and lets them work in fewer tokens. Pass `model` on every launch as the phases say. Their prompts stay self-contained, so if those agent types aren't available (the skill is installed without the plugin), launch `general-purpose` with the same prompt and model instead.
+
 ---
 
 ## Phase 1: Multi-angle analysis
@@ -52,9 +54,9 @@ Gather the unknowns from Phase 1 and the information downstream agents will need
 
 **Who gathers**
 - A few file reads or information already in the conversation is enough → gather it directly in this session.
-- Broad code exploration, research across multiple areas, or web research is needed → delegate to Sonnet agents (`Agent` with `model: "sonnet"`). Split by independent research area and launch them in parallel in a single message.
+- Broad code exploration, research across multiple areas, or web research is needed → delegate to Sonnet researchers (`Agent` with `subagent_type: "ecoskills:researcher"`, `model: "sonnet"`). Split by independent research area and launch them in parallel in a single message.
 
-When delegating to Sonnet, the prompt should include:
+When delegating, the prompt should include the following, even though the researcher agent already carries the same rules. Rules stated next to the task are followed more reliably than rules in the agent's own prompt alone, and the prompt must still work with the `general-purpose` fallback:
 - What to investigate and which decision the information will feed into (stating that the decision itself is not being asked for).
 - **Stick to collecting and organizing facts; do not write evaluations, recommendations, or rankings.**
 - Attach a source to each fact (`file:line`, URL, command output).
@@ -125,7 +127,7 @@ Once an agent responds, give it no further instructions and leave it idle (= sus
 
 ## Phase 5: Adversarial review
 
-For each subagent response, launch **one Sonnet agent with a fresh context** to review it (`model: "sonnet"`). Launch them in parallel when there are several.
+For each subagent response, launch **one Sonnet reviewer with a fresh context** to review it (`subagent_type: "ecoskills:reviewer"`, `model: "sonnet"`). Launch them in parallel when there are several.
 
 Why a fresh context: a reviewer sharing context with this session or the original agent tends to accept the same premises uncritically. Give the reviewer only the briefing and the response, by file path, and never the orchestrator's impressions. Let the reviewer check claims against the repository read-only, and tell it to save its findings to `S<n>-review-r<round>.md`.
 

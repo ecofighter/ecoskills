@@ -1,6 +1,6 @@
 # Adversarial review prompt (Phase 5)
 
-Pass this to a Sonnet agent with a fresh context (`model: "sonnet"`). Fill in the `<...>` placeholders. Do not pass the orchestrator's impressions or other subtasks' results.
+Pass this to a fresh reviewer agent (`subagent_type: "ecoskills:reviewer"`, or `"general-purpose"` if that type isn't available; `model: "sonnet"`). Fill in the `<...>` placeholders. Do not pass the orchestrator's impressions or other subtasks' results.
 
 ```markdown
 # Request: Adversarial review of a design / research result
