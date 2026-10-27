@@ -27,7 +27,7 @@ Save intermediate artifacts (analysis memo, context dossier, each briefing, each
 
 Write the final plan document in the language the user is working in.
 
-**Agent types.** The ecoskills plugin ships two agents for the fact-gathering and review roles: `ecoskills:researcher` (Phase 2) and `ecoskills:reviewer` (Phase 5). They carry only the tools those roles need, which keeps their context far smaller than `general-purpose` and lets them work in fewer tokens. Pass `model` on every launch as the phases say. Their prompts stay self-contained, so if those agent types aren't available (the skill is installed without the plugin), launch `general-purpose` with the same prompt and model instead.
+**Agent types.** The ecoskills plugin ships an agent for each delegated role: `ecoskills:researcher` (Phase 2), `ecoskills:planner` (Phase 4), and `ecoskills:reviewer` (Phase 5). They carry only the tools those roles need, which keeps their context far smaller than `general-purpose` and lets them work in fewer tokens. Pass `model` on every launch as the phases say. Their prompts stay self-contained, so if those agent types aren't available (the skill is installed without the plugin), launch `general-purpose` with the same prompt and model instead.
 
 ---
 
@@ -107,7 +107,7 @@ Write a briefing for each subtask and launch an agent. Follow the structure in `
 
 ```
 Agent(
-  subagent_type: "general-purpose",
+  subagent_type: "ecoskills:planner",
   model: "opus" | "fable",
   effort: "medium",
   description: "<3-5 word description>",
@@ -149,7 +149,7 @@ The resume instruction should include:
 
 **When to do a second round**: Repeat Phases 5–6 once more only if a serious finding (infeasible to implement, clear contradiction, constraint violation) was rejected without good reason, or the revision introduced a new serious problem. Do not go beyond two rounds; carry anything left over into Phase 7 as unresolved.
 
-**Fallback**: If `SendMessage` is unavailable or the agent has terminated and can't be resumed, launch a new agent with the same model and effort, pass it "the original briefing + the previous response + the review results", and give it the same instructions.
+**Fallback**: If `SendMessage` is unavailable or the agent has terminated and can't be resumed, launch a new agent with the same agent type, model, and effort, pass it "the original briefing + the previous response + the review results", and give it the same instructions.
 
 Start dependent downstream tasks from Phase 4 only after their prerequisite tasks have completed Phase 6.
 

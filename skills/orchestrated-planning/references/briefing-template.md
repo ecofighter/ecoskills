@@ -1,6 +1,6 @@
 # Briefing template (Phase 4)
 
-Structure of the prompt passed to an Opus / Fable subagent. Sections may be omitted as appropriate, but "Question", "Premises", and "Output format" are always required.
+Structure of the prompt passed to an Opus / Fable subagent (`subagent_type: "ecoskills:planner"`, or `"general-purpose"` if that type isn't available). Sections may be omitted as appropriate, but "Question", "Premises", and "Output format" are always required.
 
 ```markdown
 # Request: <the subtask's question in one sentence>

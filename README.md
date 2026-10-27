@@ -16,6 +16,7 @@ Claude Code 用の個人スキル集です。このリポジトリはそのま�
 | エージェント | 用途 |
 | --- | --- |
 | [ecoskills:researcher](agents/researcher.md) | `orchestrated-planning` の情報収集。評価や推奨を含まない、出典つきの事実をまとめる |
+| [ecoskills:planner](agents/planner.md) | `orchestrated-planning` の設計・調査の委任先。ブリーフィングの問いに答え、主張を自分で検証して実装者向けの成果物を書く。レビュー後に再開されて改訂する |
 | [ecoskills:reviewer](agents/reviewer.md) | 両スキルの敵対的レビュー。読み取り専用で検証し、指摘をファイルに書く |
 | [ecoskills:implementer](agents/implementer.md) | `orchestrated-execution` の実装。計画書の 1 ユニットを 1 コミットで実装し、完了条件の実行結果を報告する |
 | [ecoskills:advisor](agents/advisor.md) | `orchestrated-execution` で実装が行き詰まったときの相談役。何も編集せずに原因を診断し、進め方を勧める |
