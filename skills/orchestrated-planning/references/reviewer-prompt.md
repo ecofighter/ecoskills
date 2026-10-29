@@ -19,6 +19,10 @@ Read in full: <work dir>/S<n>-briefing.md (and any settled-premise file it names
 ## Deliverable
 Read in full: <work dir>/S<n>-response-r<round>.md
 
+<Include this section only when the subtask builds on a long-term guideline; omit it otherwise.>
+## Guidelines this deliverable must conform to
+Read: <work dir>/S<m>-response-r<k>.md (the guideline's revised deliverable). Check the deliverable against every conformance criterion (G-<n>) whose "Applies to" covers it, using each criterion's "How to check". Report each violation under C, naming the criterion.
+
 ## What to look for
 Express findings in the following three forms.
 

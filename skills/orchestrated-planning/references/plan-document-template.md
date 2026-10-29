@@ -43,6 +43,7 @@ If implementation runs into a conflict with any of these, stop and report.
 - Rejected alternatives: <option — reason in one line>
 - Scope of impact: <where it applies>
 - Revisit when: <conditions that should trigger re-examination>
+- Conformance checks: <each MUST / MUST NOT rule, and how to tell from the code whether it is followed>
 - Kept in the repository: <where it is recorded once this plan is deleted, and which task writes it (e.g. "CONTRIBUTING.md, by T-5")> / not needed
 
 ### 5.2 Short-to-mid-term design

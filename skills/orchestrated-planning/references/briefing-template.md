@@ -51,6 +51,11 @@ Completion criteria should be exact commands with exact expected results.
 5. **Implications for implementation**: constraints the implementer must follow, concrete units of work, candidate completion criteria
 6. **Unresolved items**: points you couldn't decide, and the default if work proceeds with them unresolved
 7. **Additional checks**: (if any) what you investigated yourself
+8. **Conformance criteria**: (only when this subtask sets long-term guidelines) the rules later designs and code must follow, one per guideline point:
+   - **G-<n>** MUST / MUST NOT <rule>
+     - Why: <one line; enough for someone else to rule on a borderline case without asking you>
+     - Applies to: <which parts of the system, and what is explicitly not covered>
+     - How to check: <how a reviewer tells from a design deliverable, and later from the code, whether it is followed>
 ```
 
 ## Notes on writing
@@ -58,4 +63,6 @@ Completion criteria should be exact commands with exact expected results.
 - Select **only the parts of the context dossier relevant to this task**. Don't paste the whole dossier.
 - If code or configuration matters to the decision, quote the relevant section, not just the path.
 - Don't mix the orchestrator's opinions (e.g. "X seems better") into the context.
+- Keep output item 8 for subtasks that set long-term guidelines (normally the Fable ones) and drop it elsewhere. A reviewer and a later Sonnet agent check other subtasks against these criteria, so vague rules ("keep it maintainable") make the check useless.
+- For a subtask that builds on a guideline, quote that guideline's conformance criteria verbatim under "Premises" and give the path of the guideline's revised deliverable for its intent. A summary of the conclusion alone loses the scope and the rationale.
 - Give Fable richer context about long-term scope of impact (future extensions, maintainers, other systems); give Opus richer context about the concrete current state (code, existing guidelines).

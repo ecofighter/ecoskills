@@ -18,7 +18,7 @@ The plan document is committed on the branch only for execution and will be dele
 
 ## What to look for
 1. Goals and success criteria: is each one met? Run the plan's overall verification.
-2. Plan conformance: decisions and constraints honored across the whole diff, and no unplanned changes.
+2. Plan conformance: decisions and constraints honored across the whole diff, including each long-term guideline's conformance checks, and no unplanned changes.
 3. Cross-unit consistency: naming, structure, duplicated or conflicting changes, and an earlier unit's work undone by a later one.
 4. Leftovers: debug code, temporary files, stale references to removed or renamed things, TODOs.
 5. Correctness and quality: bugs, fragile constructs, and comments or docs that no longer match the code.

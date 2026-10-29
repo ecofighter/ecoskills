@@ -1,6 +1,6 @@
 {
   "name": "ecoskills",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Orchestrated planning and execution skills with dedicated researcher, planner, reviewer, implementer, and advisor agents: multi-angle planning with subagents and adversarial review, then plan execution in a dedicated worktree.",
   "license": "MIT",
   "author": {

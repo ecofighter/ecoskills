@@ -1,11 +1,11 @@
 ---
 name: orchestrated-planning
-description: Orchestrates planning for a substantial task — analyze it from multiple angles, gather and organize context, delegate design and research to model-matched subagents (Opus for short-to-mid-term work, Fable for long-term guidelines), put each result through adversarial review by a fresh Sonnet agent and revision, then consolidate everything into a structured document under docs/plans/ from which an implementation agent can build a rigorous implementation plan. Use this whenever the user asks to analyze a task thoroughly before implementing, decide architecture or development guidelines, split research and design across subagents, or produce a plan document for a sizable feature, migration, or refactor — even if they don't name this skill (e.g. 「多角的に分析して計画を立てて」「設計方針を決めたい」「調査と設計をサブエージェントに分けて」「実装前にちゃんと計画書を作りたい」). Do not use for single-file fixes or work whose plan is already settled and ready to implement.
+description: Orchestrates planning for a substantial task — analyze it from multiple angles, gather and organize context, delegate design and research to model-matched subagents (Opus for short-to-mid-term work, Fable for long-term guidelines), put each result through adversarial review by a fresh Sonnet agent and revision, cross-check the short-to-mid-term designs against the long-term guidelines before integrating, then consolidate everything into a structured document under docs/plans/ from which an implementation agent can build a rigorous implementation plan. Use this whenever the user asks to analyze a task thoroughly before implementing, decide architecture or development guidelines, split research and design across subagents, or produce a plan document for a sizable feature, migration, or refactor — even if they don't name this skill (e.g. 「多角的に分析して計画を立てて」「設計方針を決めたい」「調査と設計をサブエージェントに分けて」「実装前にちゃんと計画書を作りたい」). Do not use for single-file fixes or work whose plan is already settled and ready to implement.
 ---
 
 # Orchestrated Planning
 
-Process a substantial task through analysis → context gathering → delegation → adversarial review → revision → consolidation, and produce **a document from which an implementation agent can build a rigorous implementation plan without further investigation**.
+Process a substantial task through analysis → context gathering → delegation → adversarial review → revision → guideline conformance check → consolidation, and produce **a document from which an implementation agent can build a rigorous implementation plan without further investigation**.
 
 The deliverable of this skill is the plan document. Do not implement anything.
 
@@ -18,12 +18,13 @@ Phase 3  Decomposition and assignment  (this session) → user approval
 Phase 4  Delegation                    (Opus/medium or Fable/medium) → suspend after response
 Phase 5  Adversarial review            (fresh Sonnet agent)
 Phase 6  Resume and revise             (resume the Phase 4 agent via SendMessage)
+Phase 6.5 Guideline conformance check  (fresh Sonnet agent; Fable rules only on borderline cases) — skip when nothing builds on a guideline
 Phase 7  Consolidation                 (this session) → docs/plans/
 ```
 
 The core of this skill is keeping each phase's role separate. In particular, if value judgments leak into Phase 2, downstream agents receive the orchestrator's biases as premises and can no longer make independent design decisions.
 
-Save intermediate artifacts (analysis memo, context dossier, each briefing, each agent's output, review results, agent IDs) as files in one work directory: the scratchpad directory (or `docs/plans/.work/<slug>/` if there is none). This lets work continue after the conversation context gets summarized, and lets agents exchange artifacts by path instead of having the orchestrator re-type them. Suggested names: `01-dossier.md`, `S1-briefing.md`, `S1-response-r1.md`, `S1-review-r1.md`, `S1-response-r2.md`, `agents.txt`.
+Save intermediate artifacts (analysis memo, context dossier, each briefing, each agent's output, review results, agent IDs) as files in one work directory: the scratchpad directory (or `docs/plans/.work/<slug>/` if there is none). This lets work continue after the conversation context gets summarized, and lets agents exchange artifacts by path instead of having the orchestrator re-type them. Suggested names: `01-dossier.md`, `S1-briefing.md`, `S1-response-r1.md`, `S1-review-r1.md`, `S1-response-r2.md`, `X-conformance-r1.md`, `X-ruling-r1.md`, `agents.txt`.
 
 Write the final plan document in the language the user is working in.
 
@@ -82,13 +83,14 @@ Using the context dossier, carve out subtasks to delegate. Size each subtask so 
 Tie-breaker when unsure: "If this decision were reversed six months from now, how much other work would have to be redone?" Widespread rework → Fable; localized → Opus.
 
 **Handling dependencies**
-- If a Fable guideline is a prerequisite for an Opus design, run the Fable task to completion (through Phase 6) first, and include its revised conclusion in the Opus task's briefing.
+- If a Fable guideline is a prerequisite for an Opus design, run the Fable task to completion (through Phase 6) first, and include its revised conclusion in the Opus task's briefing: quote its conformance criteria verbatim and give the path of its revised deliverable.
 - Launch mutually independent tasks in parallel.
 
 **User approval**
 
 Before delegating, present the following to the user and get approval. Fable is expensive, so assignment mistakes should be caught before launch.
 - The subtask list (question, assigned model, reason for the assignment, dependencies, execution order).
+- Whether Phase 6.5 will run (see its skip condition).
 - Key points of the context dossier, and anything that will be delegated while still unresolved.
 
 Apply any corrections before proceeding.
@@ -121,6 +123,8 @@ Two instructions belong in every briefing (they are in the template):
 - **Write the final deliverable to a given file path** (`S<n>-response-r<round>.md`) as well as returning it. Otherwise the orchestrator has to re-type or extract it before the reviewer can read it.
 - **Verify cheaply where possible and tag claims** as verified (by evaluation, test run, or reading the source) or inferred. Allow read-only checks and experiments in a scratch copy of the repository, never in the repository itself. Agents that can check their own claims produce far fewer unsupported assertions, and the tags tell the reviewer where to push.
 
+Subtasks that set long-term guidelines also output **conformance criteria** (output item 8 of the template): each guideline as a checkable MUST / MUST NOT rule with its rationale, scope, and how to check it. Phases 5 and 6.5 check the other subtasks against these, so that Fable's intent is checked by cheap agents instead of by Fable itself.
+
 Once an agent responds, give it no further instructions and leave it idle (= suspended).
 
 **Coordinating parallel subtasks.** Sometimes two parallel subtasks touch the same cross-cutting decision (e.g. one designs features, the other decides which environments receive them). Decide up front which subtask owns that decision. Then, when resuming them in Phase 6, pass each one the other's relevant proposals as facts. Tell the non-owner to make its design work under any outcome of the owner's decision (for example, by isolating the affected part behind a single switch). This avoids a contradiction that would otherwise only surface in Phase 7.
@@ -128,6 +132,8 @@ Once an agent responds, give it no further instructions and leave it idle (= sus
 ## Phase 5: Adversarial review
 
 For each subagent response, launch **one Sonnet reviewer with a fresh context** to review it (`subagent_type: "ecoskills:reviewer"`, `model: "sonnet"`). Launch them in parallel when there are several.
+
+For a subtask that builds on a long-term guideline, also give the reviewer the guideline's revised deliverable (the optional section of the template), so it checks conformance against the criteria themselves rather than against the briefing's quotation alone.
 
 Why a fresh context: a reviewer sharing context with this session or the original agent tends to accept the same premises uncritically. Give the reviewer only the briefing and the response, by file path, and never the orchestrator's impressions. Let the reviewer check claims against the repository read-only, and tell it to save its findings to `S<n>-review-r<round>.md`.
 
@@ -153,13 +159,32 @@ The resume instruction should include:
 
 Start dependent downstream tasks from Phase 4 only after their prerequisite tasks have completed Phase 6.
 
+## Phase 6.5: Guideline conformance check
+
+Phase 5 checks each subtask on its own, against the guideline as it stood when the subtask was briefed. Three things slip past it: designs that each conform but break a guideline once combined, drift introduced while revising in Phase 6, and conflicts between subtasks that Phase 7 would otherwise have to find alone. This phase catches them before consolidation.
+
+**Skip it** when no subtask produced conformance criteria, or when at most one subtask builds on them and no other subtask could interact with it. Phase 5 already covered that case.
+
+**Check.** Once every subtask has completed Phase 6, launch **one fresh Sonnet reviewer** (`subagent_type: "ecoskills:reviewer"`, `model: "sonnet"`) with `references/conformance-check-prompt.md`. Give it the guideline deliverables and every revised deliverable that builds on them, by path. It sorts each finding into one of four kinds; handle them as follows:
+
+| Kind | Handling |
+|---|---|
+| **Violation**: clearly breaks a criterion | Resume the subtask's agent (as in Phase 6) with the finding and have it revise. |
+| **Interpretation**: depends on how a criterion is read, or on a case its scope does not settle | Ask Fable for a ruling (below), then handle the ruling's required changes like a violation. |
+| **Challenge**: a deliverable gives concrete evidence that a guideline does not hold | Don't let any agent amend the guideline. Bring it to the user with the evidence; if the user changes the guideline, resume the guideline's agent to revise it and re-run this phase. |
+| **Conflict**: two deliverables disagree on something no guideline covers | Resolve in Phase 7 as usual. |
+
+**Fable ruling.** Launch a new agent (`subagent_type: "ecoskills:planner"`, `model: "fable"`, `effort: "medium"`) rather than resuming the guideline's original agent: resuming re-reads its whole transcript, usually after the prompt cache has expired, while the criteria's "Why" and "Applies to" carry what a ruling needs. Pass only the criteria in question, the guideline deliverable's path, and the quoted parts of the deliverables involved. Ask, per finding, for one of: conforms / violates, with the change required / the guideline needs amending (which is then a challenge for the user). Have it write `X-ruling-r<round>.md`. Fable rules; it does not rewrite other subtasks' designs.
+
+**Rounds.** After the revisions, re-run the check once, on the revised deliverables only. Carry anything still open into Phase 7 as unresolved.
+
 ## Phase 7: Consolidation into the plan document
 
 Consolidate all subtasks' revised deliverables and save to `docs/plans/YYYY-MM-DD-<topic>.md`. Follow the structure in `references/plan-document-template.md`.
 
 **During consolidation**
 - Detect contradictions and overlaps between subtask conclusions. Resolve the ones the orchestrator can resolve on solid grounds and record the reasoning; ask the user about ones that come down to differing value judgments.
-- Keep long-term guidelines (from Fable) separate from short-to-mid-term design (from Opus), so the implementer knows what to treat as fixed constraints.
+- Keep long-term guidelines (from Fable) separate from short-to-mid-term design (from Opus), so the implementer knows what to treat as fixed constraints. Carry each guideline's conformance criteria into it, so the execution reviews can check the code against them.
 - Link every implementation task to the IDs of the decisions it is based on. An implementation task with no linked decision signals a missing decision.
 - Size implementation tasks so that each one fits in a single commit, and give each one exact verification commands with expected results. The plan is executed by the `orchestrated-execution` skill, which commits and reviews one task at a time.
 - Fill in the template's execution-facing fields (base commit, prerequisites, baseline, per-task "left to the implementer" and condition). The executor uses them to catch a stale plan or missing tool before it starts, and to judge how much judgment each task needs.
@@ -188,6 +213,6 @@ Before saving, reread the document from the implementation agent's point of view
 Tell the user, concisely:
 - The path to the plan document.
 - A summary of the key decisions (especially long-term guidelines).
-- What changed significantly as a result of the review.
+- What changed significantly as a result of the review and the conformance check.
 - Unresolved items, and which ones need the user's decision.
 - Next step: offer to execute the plan with the `orchestrated-execution` skill.

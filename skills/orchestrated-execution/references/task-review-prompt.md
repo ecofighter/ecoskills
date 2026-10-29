@@ -20,7 +20,7 @@ If you can't write the findings file, return the findings in your final message 
 
 ## What to look for
 ### A. Contradictions with the plan
-- Deviations from the plan's decisions, constraints, or this unit's specified contents
+- Deviations from the plan's decisions, constraints, or this unit's specified contents, including the conformance checks of the long-term guidelines this unit relies on
 - Completion criteria not actually met, or met only by weakening the check. Re-run them if in doubt.
 - Changes outside this unit's scope
 
